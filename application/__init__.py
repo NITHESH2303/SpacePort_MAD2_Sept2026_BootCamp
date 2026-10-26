@@ -1,8 +1,10 @@
-from flask import Flask
+from flask import Flask, g
 import os
 from application.database import db
 from flask_migrate import Migrate
 from application import models
+from flask_jwt_extended import JWTManager,verify_jwt_in_request, get_jwt
+from application.PreProcess import PreProcess
 
 # /SpacePort/application
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,14 +21,27 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f'sqlite:///{DB_PATH}')
     app.config['FLASK_PASSWORD_SALT'] = os.environ.get('FLASK_PASSWORD_SALT', 'this is bad, change it')
     app.config['FLASK_PASSWORD_HASH'] = os.environ.get('FLASK_PASSWORD_HASH', 'argon2')
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-spaceport-jwt-token-key-2026')
+    jwt = JWTManager(app)
     print(f"Using database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
     with app.app_context():
         db.init_app(app)
         migrate = Migrate(app, db)
         migrate.init_app(app, db)
         try:
-           
             db.create_all()
+            PreProcess()
+            print("DB Creation Done!!")
         except Exception as e:
             print(f"Error creating database tables: {e}")
+    
+    @app.before_request
+    def load_roles_jwt():
+        try:
+        # when user sign up -> if optional was false -> jwt token won't be available for new user -> 401 Exception (Unauthorised)
+            verify_jwt_in_request(optional=True)
+            claims = get_jwt()
+            g.roles = claims.get("roles", [])
+        except Exception as e:
+            g.roles = []
     return app
