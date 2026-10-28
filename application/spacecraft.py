@@ -9,9 +9,21 @@ class SpaceCraftResource(Resource):
         self.spacecraft_input_fields.add_argument('name', type=str, required=True, location='json')
         self.spacecraft_input_fields.add_argument('type', type=str, required=True, location='json')
         self.spacecraft_input_fields.add_argument('capacity', type=int, required=True, location='json')
-        
-    
-    def get(self):
+
+    def get(self, craft_id=None):
+        if craft_id:
+            craft = SpaceCraftModel.query.get(craft_id)
+            if not craft:
+                return {"message": "Spacecraft not found"}, 404
+            return {
+                "spacecraft": {
+                    "id": craft.id,
+                    "name": craft.name,
+                    "type": craft.type,
+                    "capacity": craft.capacity
+                }
+            }, 200
+
         spacecrafts = SpaceCraftModel.query.all()
         result = [
             {
@@ -30,7 +42,7 @@ class SpaceCraftResource(Resource):
         type = args['type']
         capacity = args['capacity']
 
-        new_spacecraft = SpaceCraftModel(name=name, type=type, capacity=capacity)  # fixed
+        new_spacecraft = SpaceCraftModel(name=name, type=type, capacity=capacity)
         db.session.add(new_spacecraft)
         db.session.commit()
 
@@ -40,3 +52,32 @@ class SpaceCraftResource(Resource):
             "type": new_spacecraft.type,
             "capacity": new_spacecraft.capacity
         }}, 201
+
+    @jwt_required()
+    def put(self, craft_id):
+        craft = SpaceCraftModel.query.get(craft_id)
+        if not craft:
+            return {"message": "Spacecraft not found"}, 404
+
+        args = self.spacecraft_input_fields.parse_args()
+        craft.name = args['name']
+        craft.type = args['type']
+        craft.capacity = args['capacity']
+        db.session.commit()
+
+        return {"message": "Spacecraft updated successfully", "spacecraft": {
+            "id": craft.id,
+            "name": craft.name,
+            "type": craft.type,
+            "capacity": craft.capacity
+        }}, 200
+
+    @jwt_required()
+    def delete(self, craft_id):
+        craft = SpaceCraftModel.query.get(craft_id)
+        if not craft:
+            return {"message": "Spacecraft not found"}, 404
+
+        db.session.delete(craft)
+        db.session.commit()
+        return {"message": "Spacecraft deleted successfully"}, 200

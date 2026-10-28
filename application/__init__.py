@@ -5,6 +5,8 @@ from flask_migrate import Migrate
 from application import models
 from flask_jwt_extended import JWTManager,verify_jwt_in_request, get_jwt
 from application.PreProcess import PreProcess
+from flask_cors import CORS
+from datetime import timedelta
 
 # /SpacePort/application
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +24,19 @@ def create_app():
     app.config['FLASK_PASSWORD_SALT'] = os.environ.get('FLASK_PASSWORD_SALT', 'this is bad, change it')
     app.config['FLASK_PASSWORD_HASH'] = os.environ.get('FLASK_PASSWORD_HASH', 'argon2')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-spaceport-jwt-token-key-2026')
+    app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=5)
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(minutes=15)
+    
+    
+    # ref : https://manpages.debian.org/testing/python3-flask-cors/flask-cors.1#CORS_SUPPORTS_CREDENTIALS
+    print(os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173"))
+    allowes_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    cors = CORS(
+        app, 
+        resources={r"/*": {"origins": allowes_origins, "supports_credentials": True}},
+    )
+    
     jwt = JWTManager(app)
     print(f"Using database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
     with app.app_context():

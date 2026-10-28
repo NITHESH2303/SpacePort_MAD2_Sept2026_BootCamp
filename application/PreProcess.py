@@ -1,4 +1,4 @@
-from application.models import User, Roles, UserRoles
+from application.models import User, Roles, UserRoles, SpaceCraft
 from application.database import db
 from werkzeug.security import generate_password_hash
 
@@ -31,8 +31,22 @@ class PreProcess:
 
             admin_role_entry = UserRoles(user_id=admin.id, role_id=admin_role.id)
             db.session.add(admin_role_entry)
+    
+    def pre_populate_crafts(self):
+        space_carfs = [
+                {"name": "Applo", "type": "Lunar Shuttle", "capacity": 2},
+                {"name": "Falcon", "type": "Orbital Carrier", "capacity": 4},
+                {"name": "Starship", "type": "Deep Space", "capacity": 6}
+        ]
+        existing_name = {c.name for c in SpaceCraft.query.all()}
+        for craft in space_carfs:
+            if craft["name"] not in existing_name:
+                new_craft = SpaceCraft(name = craft["name"],type = craft["type"],capacity = craft["capacity"])
+                db.session.add(new_craft)
+            db.session.commit()
 
     def __init__(self):
         self.prepopulate_roles()
         self.create_admin()
+        self.pre_populate_crafts()
         db.session.commit()
