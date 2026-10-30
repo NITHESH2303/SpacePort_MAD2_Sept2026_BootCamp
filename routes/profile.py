@@ -10,7 +10,7 @@ class Profile(Resource):
         self.profile_input_fields.add_argument('username', type=str, required=False, location='args')
     
     @jwt_required()
-    @jwt_required_with_roles(['customer', 'admin', 'employee', 'user'])
+    @jwt_required_with_roles(['customer', 'admin', 'employee'])
     def get(self):
         args = self.profile_input_fields.parse_args()
         current_user = get_jwt_identity()

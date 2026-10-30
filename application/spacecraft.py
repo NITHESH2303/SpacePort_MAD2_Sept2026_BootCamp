@@ -2,6 +2,8 @@ from application.database import db
 from application.models import SpaceCraft as SpaceCraftModel
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource, reqparse
+from application.redis_client import redis_client
+import json
 
 class SpaceCraftResource(Resource):
     def __init__(self):
@@ -23,7 +25,13 @@ class SpaceCraftResource(Resource):
                     "capacity": craft.capacity
                 }
             }, 200
+            
+        cached_data = redis_client.get('all_spacecrafts')
+        if cached_data:
+            print("Got from redis....")
+            return json.loads(cached_data), 200
 
+        print("no cache..!!!!!! taking from DB....")
         spacecrafts = SpaceCraftModel.query.all()
         result = [
             {
@@ -33,7 +41,12 @@ class SpaceCraftResource(Resource):
                 "capacity": spacecraft.capacity
             } for spacecraft in spacecrafts
         ]
-        return {"spacecrafts": result}, 200
+        
+        response = {"spacecrafts":  result}
+        
+        redis_client.setex('all_spacecrafts', 180, json.dumps(response))
+        
+        return response, 200
 
     @jwt_required()
     def post(self):
@@ -46,6 +59,8 @@ class SpaceCraftResource(Resource):
         db.session.add(new_spacecraft)
         db.session.commit()
 
+        redis_client.delete('all_spacecrafts')
+        print("invalidated redis!!!!")
         return {"message": "Spacecraft created successfully", "spacecraft": {
             "id": new_spacecraft.id,
             "name": new_spacecraft.name,

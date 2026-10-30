@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager,verify_jwt_in_request, get_jwt
 from application.PreProcess import PreProcess
 from flask_cors import CORS
 from datetime import timedelta
+from application.redis_client import redis_client
 
 # /SpacePort/application
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
